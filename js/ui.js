@@ -78,16 +78,58 @@ function renderMelds(container, melds, facing) {
   });
 }
 
-function renderDiscards(container, discards, facing) {
+function renderTile2D(tile, opts) {
+  opts = opts || {};
+  const size = opts.size || 'sm';
+  const el = document.createElement('div');
+  el.className = 'tile-2d size-' + size + ' ' + suitClass(tile.suit) +
+    (opts.lastDiscard ? ' is-last' : '');
+  el.title = tileLabel(tile);
+  const span = document.createElement('span');
+  span.className = 'tile-2d-text';
+  span.textContent = tileLabel(tile);
+  el.appendChild(span);
+  return el;
+}
+
+function renderDiscardGrid(container, discards, opts) {
+  opts = opts || {};
   container.innerHTML = '';
-  const pile = document.createElement('div');
-  pile.className = 'discard-pile facing-' + facing;
+  if (!discards.length) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'discard-2d-wrap' +
+    (opts.facing ? ' facing-' + opts.facing : '') +
+    (opts.compact ? ' compact' : '');
+
+  const label = document.createElement('div');
+  label.className = 'discard-2d-label';
+  label.textContent = opts.label || ('河牌 ' + discards.length + ' 张');
+  wrap.appendChild(label);
+
+  const grid = document.createElement('div');
+  grid.className = 'discard-2d-grid';
+  if (opts.cols) grid.style.setProperty('--discard-cols', String(opts.cols));
+
   discards.forEach((t, i) => {
-    pile.appendChild(renderTile(t, {
-      facing: 'flat', size: 'sm', lastDiscard: i === discards.length - 1,
+    const isLast = opts.highlightLast && i === discards.length - 1;
+    grid.appendChild(renderTile2D(t, {
+      size: opts.tileSize || 'sm',
+      lastDiscard: isLast,
     }));
   });
-  container.appendChild(pile);
+
+  wrap.appendChild(grid);
+  container.appendChild(wrap);
+}
+
+function renderDiscards(container, discards, facing) {
+  renderDiscardGrid(container, discards, {
+    facing: facing === 'bottom' ? 'self' : facing,
+    label: '我的河牌 ' + discards.length + ' 张',
+    highlightLast: true,
+    tileSize: 'md',
+  });
 }
 
 function renderHand(container, hand, drawn, state) {
@@ -125,25 +167,13 @@ function renderHand(container, hand, drawn, state) {
 }
 
 function renderOpponentDiscards(container, discards, facing, highlightLast) {
-  container.innerHTML = '';
-  if (!discards.length) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'opp-discards-wrap facing-' + facing;
-  const label = document.createElement('div');
-  label.className = 'opp-discards-label';
-  label.textContent = '河牌 ' + discards.length;
-  wrap.appendChild(label);
-  const pile = document.createElement('div');
-  pile.className = 'discard-pile opp-discard-pile facing-' + facing;
-  const recent = discards.slice(-3);
-  recent.forEach((t, i) => {
-    const isLast = highlightLast && i === recent.length - 1;
-    pile.appendChild(renderTile(t, {
-      facing: 'flat', size: 'xs', lastDiscard: isLast,
-    }));
+  renderDiscardGrid(container, discards, {
+    facing,
+    label: '已打出 ' + discards.length + ' 张',
+    highlightLast,
+    tileSize: facing === 'top' ? 'md' : 'sm',
+    cols: facing === 'top' ? 12 : 4,
   });
-  wrap.appendChild(pile);
-  container.appendChild(wrap);
 }
 
 function renderOpponentHand(container, count, facing, isTurn) {
@@ -510,7 +540,7 @@ function render(state) {
   center.innerHTML = '';
   if (state.lastDiscard) {
     const spotlight = document.createElement('div');
-    spotlight.className = 'center-spotlight';
+    spotlight.className = 'center-spotlight center-spotlight-2d';
     const fromName = state.players[state.lastDiscardFrom]
       ? state.players[state.lastDiscardFrom].name : '';
     if (fromName) {
@@ -519,7 +549,7 @@ function render(state) {
       tag.textContent = fromName + ' 打出';
       spotlight.appendChild(tag);
     }
-    spotlight.appendChild(renderTile(state.lastDiscard, { facing: 'flat', size: 'md', lastDiscard: true }));
+    spotlight.appendChild(renderTile2D(state.lastDiscard, { size: 'lg', lastDiscard: true }));
     center.appendChild(spotlight);
   }
 
