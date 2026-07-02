@@ -132,6 +132,19 @@ function buildPlayerCard(seat, state) {
   const roundP = state.scores[seat] - (state.roundStartScores ? state.roundStartScores[seat] : 0);
   const sessionP = state.scores[seat] - (state.sessionStartScores ? state.sessionStartScores[seat] : 0);
 
+  let actionText = '';
+  let justDiscarded = false;
+  if (!isHuman && !state.gameOver) {
+    if (state.current === seat) {
+      actionText = (state.phase === 'ai-discard' || state.phase === 'discard') ? '正在出牌…' : '等待反应…';
+    } else if (state.lastDiscardFrom === seat && state.lastDiscard) {
+      actionText = '打出【' + tileLabel(state.lastDiscard) + '】';
+      justDiscarded = true;
+    } else {
+      actionText = '等待中';
+    }
+  }
+
   return {
     seat,
     isHuman,
@@ -146,8 +159,11 @@ function buildPlayerCard(seat, state) {
     score: state.scores[seat],
     roundProfit: roundP,
     sessionProfit: sessionP,
+    handCount: p.handCount,
     melds: p.melds.length,
     discards: p.discards.length,
+    actionText,
+    justDiscarded,
   };
 }
 

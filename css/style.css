@@ -13,9 +13,10 @@
   --bar-h: 42px;
   --action-h: 54px;
   /* 牌尺寸 — 比原版更大 */
-  --tw-lg: 58px; --th-lg: 78px; --td-lg: 12px;
-  --tw-md: 48px; --th-md: 64px; --td-md: 10px;
-  --tw-sm: 42px; --th-sm: 56px; --td-sm: 8px;
+  --tw-lg: 58px; --th-lg: 78px; --td-lg: 8px;
+  --tw-md: 48px; --th-md: 64px; --td-md: 8px;
+  --tw-sm: 42px; --th-sm: 56px; --td-sm: 7px;
+  --tw-xs: 30px; --th-xs: 40px; --td-xs: 5px;
 }
 
 html, body {
@@ -178,8 +179,8 @@ html[data-device="phone"] .app-version { display: none; }
 /* 牌桌台面 — 居中，为下方玩家区留出空间 */
 .table-surface {
   position: absolute;
-  left: 14%; right: 14%;
-  top: 12%; bottom: 18%;
+  left: 16%; right: 16%;
+  top: 14%; bottom: 16%;
   transform-style: preserve-3d;
   transform: translateZ(-24px);
 }
@@ -235,13 +236,35 @@ html[data-device="phone"] .app-version { display: none; }
 .seat > * { pointer-events: auto; }
 
 .seat-top {
-  top: 2%; left: 50%; transform: translateX(-50%);
-  width: 70%;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 88%;
+  padding: 6px 10px 8px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.15));
+  border-radius: 0 0 14px 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-top: none;
+  flex-direction: column;
+  gap: 4px;
 }
-.seat-bottom {
-  bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 96%; z-index: 50;
-  pointer-events: auto;
+.seat-left {
+  left: 0; top: 50%; transform: translateY(-50%);
+  width: auto; max-width: 18%; min-width: 108px;
+  height: auto; max-height: 72%;
+  align-items: flex-start;
+  padding: 8px 6px;
+  background: linear-gradient(to right, rgba(0,0,0,0.5), transparent);
+  border-radius: 0 12px 12px 0;
+  gap: 4px;
+}
+.seat-right {
+  right: 0; top: 50%; transform: translateY(-50%);
+  width: auto; max-width: 18%; min-width: 108px;
+  height: auto; max-height: 72%;
+  align-items: flex-end;
+  padding: 8px 6px;
+  background: linear-gradient(to left, rgba(0,0,0,0.5), transparent);
+  border-radius: 12px 0 0 12px;
+  gap: 4px;
 }
 
 /* ===== 玩家底栏（手牌 + 提示，不在 3D 变换内） ===== */
@@ -285,15 +308,97 @@ html[data-device="phone"] .app-version { display: none; }
 .hand-player .tile-3d.selectable:active {
   transform: rotateX(-4deg) translateY(-6px) translateZ(18px) scale(1.02);
 }
-.seat-left {
-  left: 0; top: 50%; transform: translateY(-50%);
-  width: 14%; height: 55%;
-  align-items: flex-start;
+
+/* ===== 对手信息条 ===== */
+.opp-hand-strip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 8px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  max-width: 100%;
 }
-.seat-right {
-  right: 0; top: 50%; transform: translateY(-50%);
-  width: 14%; height: 55%;
+.opp-hand-strip.is-turn {
+  border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(240,192,64,0.3);
+}
+.opp-hand-strip.facing-top { flex-direction: row; width: 100%; justify-content: center; }
+.opp-hand-strip.facing-left,
+.opp-hand-strip.facing-right { flex-direction: column; align-items: center; }
+
+.opp-hand-label {
+  display: flex; align-items: baseline; gap: 2px;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  background: rgba(240,192,64,0.18);
+  border-radius: 6px;
+  border: 1px solid rgba(240,192,64,0.35);
+}
+.opp-count-num { font-size: 18px; font-weight: bold; color: var(--gold); line-height: 1; }
+.opp-count-unit { font-size: 11px; color: rgba(255,255,255,0.75); }
+
+.opp-hand-tiles {
+  display: flex; flex-wrap: nowrap; gap: 2px;
   align-items: flex-end;
+  overflow: hidden;
+}
+.opp-hand-strip.facing-left .opp-hand-tiles,
+.opp-hand-strip.facing-right .opp-hand-tiles {
+  flex-direction: column;
+  max-height: 140px;
+}
+.opp-hand-more {
+  font-size: 11px; font-weight: bold; color: var(--gold);
+  padding: 2px 4px; opacity: 0.85;
+}
+
+.opp-hand-tiles .tile-3d::before,
+.opp-hand-tiles .tile-3d::after { opacity: 0.45; transform: scale(0.7); }
+.opp-hand-tiles .tile-3d.facing-top { transform: rotateX(18deg) scale(0.9); opacity: 1; }
+.opp-hand-tiles .tile-3d.facing-left { transform: rotateY(40deg) scale(0.88); opacity: 1; }
+.opp-hand-tiles .tile-3d.facing-right { transform: rotateY(-40deg) scale(0.88); opacity: 1; }
+
+.opp-discards-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  margin-top: 2px;
+}
+.opp-discards-label {
+  font-size: 9px; opacity: 0.65; white-space: nowrap;
+}
+.opp-discard-pile { gap: 3px !important; }
+.opp-discard-pile .tile-3d.last-discard {
+  transform: rotateX(65deg) translateZ(6px) scale(1.08);
+  z-index: 5;
+}
+
+.pc-hand-big {
+  font-size: 12px; margin-top: 2px; color: rgba(255,255,255,0.9);
+}
+.pc-hand-big b { font-size: 16px; color: #7bed9f; margin: 0 2px; }
+.pc-action {
+  font-size: 11px; margin-top: 3px; padding: 2px 6px;
+  border-radius: 6px; background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.7);
+}
+.pc-action-active {
+  background: rgba(240,192,64,0.25); color: var(--gold); font-weight: bold;
+  animation: pc-pulse 1s ease-in-out infinite;
+}
+.pc-action-discarded {
+  background: rgba(111,207,151,0.2); color: #7bed9f; font-weight: bold;
+}
+@keyframes pc-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+.center-discard-from {
+  font-size: 11px; font-weight: bold; color: var(--gold);
+  margin-bottom: 6px; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  white-space: nowrap;
+}
+.center-spotlight {
+  display: flex; flex-direction: column; align-items: center;
 }
 
 .seat-head {
@@ -381,6 +486,7 @@ html[data-device="phone"] .app-version { display: none; }
 .tile-3d.size-lg { width: var(--tw-lg); height: var(--th-lg); --tw: var(--tw-lg); --th: var(--th-lg); --td: var(--td-lg); }
 .tile-3d.size-md { width: var(--tw-md); height: var(--th-md); --tw: var(--tw-md); --th: var(--th-md); --td: var(--td-md); }
 .tile-3d.size-sm { width: var(--tw-sm); height: var(--th-sm); --tw: var(--tw-sm); --th: var(--th-sm); --td: var(--td-sm); }
+.tile-3d.size-xs { width: var(--tw-xs); height: var(--th-xs); --tw: var(--tw-xs); --th: var(--th-xs); --td: var(--td-xs); }
 
 /* 牌面 */
 .tile-face {
@@ -438,6 +544,7 @@ html[data-device="phone"] .app-version { display: none; }
 .size-lg .tile-text { font-size: 22px; }
 .size-md .tile-text { font-size: 18px; }
 .size-sm .tile-text { font-size: 15px; }
+.size-xs .tile-text { font-size: 12px; }
 
 .tile-wan .tile-text  { color: #c0392b; }
 .tile-tong .tile-text { color: #2471a3; }

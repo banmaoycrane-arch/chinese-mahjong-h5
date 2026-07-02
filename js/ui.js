@@ -65,7 +65,7 @@ function renderTile(tile, opts) {
 }
 
 function isSameTile(a, b) {
-  return a && b && a === b;
+  return a && b && (a === b || a.id === b.id);
 }
 
 function renderMelds(container, melds, facing) {
@@ -124,17 +124,54 @@ function renderHand(container, hand, drawn, state) {
   container.appendChild(row);
 }
 
-function renderOpponentHand(container, count, facing) {
+function renderOpponentDiscards(container, discards, facing, highlightLast) {
   container.innerHTML = '';
-  const row = document.createElement('div');
-  row.className = 'hand-row facing-' + facing;
-  for (let i = 0; i < count; i++) {
-    row.appendChild(renderTile(
-      { suit: 'wan', value: 1, id: 'x' + i },
-      { faceDown: true, facing, size: facing === 'top' ? 'sm' : 'md' }
+  if (!discards.length) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'opp-discards-wrap facing-' + facing;
+  const label = document.createElement('div');
+  label.className = 'opp-discards-label';
+  label.textContent = '河牌 ' + discards.length;
+  wrap.appendChild(label);
+  const pile = document.createElement('div');
+  pile.className = 'discard-pile opp-discard-pile facing-' + facing;
+  const recent = discards.slice(-3);
+  recent.forEach((t, i) => {
+    const isLast = highlightLast && i === recent.length - 1;
+    pile.appendChild(renderTile(t, {
+      facing: 'flat', size: 'xs', lastDiscard: isLast,
+    }));
+  });
+  wrap.appendChild(pile);
+  container.appendChild(wrap);
+}
+
+function renderOpponentHand(container, count, facing, isTurn) {
+  container.innerHTML = '';
+  const strip = document.createElement('div');
+  strip.className = 'opp-hand-strip facing-' + facing + (isTurn ? ' is-turn' : '');
+  const label = document.createElement('div');
+  label.className = 'opp-hand-label';
+  label.innerHTML = '<span class="opp-count-num">' + count + '</span><span class="opp-count-unit">张</span>';
+  const tiles = document.createElement('div');
+  tiles.className = 'opp-hand-tiles';
+  const maxShow = facing === 'top' ? 11 : 7;
+  const showCount = Math.min(Math.max(count, 0), maxShow);
+  for (let i = 0; i < showCount; i++) {
+    tiles.appendChild(renderTile(
+      { suit: 'wan', value: 1, id: 'opp' + facing + i },
+      { faceDown: true, facing, size: 'xs' }
     ));
   }
-  container.appendChild(row);
+  if (count > maxShow) {
+    const more = document.createElement('span');
+    more.className = 'opp-hand-more';
+    more.textContent = '+' + (count - maxShow);
+    tiles.appendChild(more);
+  }
+  strip.appendChild(label);
+  strip.appendChild(tiles);
+  container.appendChild(strip);
 }
 
 function renderPlayerHint(state) {
@@ -207,17 +244,26 @@ function renderPlayerCardEl(card) {
 
   const info = document.createElement('div');
   info.className = 'pc-info';
-  info.innerHTML =
-    '<div class="pc-name">' + card.name + (card.isDealer ? ' <span class="dealer-tag">庄</span>' : '') + '</div>' +
-    '<div class="pc-title">' + card.title + '</div>' +
-    '<div class="pc-score">积分 <b>' + card.score + '</b></div>' +
-    '<div class="pc-profit ' + profitClass(card.roundProfit) + '">本局 ' + MahjongStatus.formatProfit(card.roundProfit) + '</div>' +
-    '<div class="pc-meta">出' + card.discards + '张 · 明' + card.melds + '组</div>';
+  if (card.isHuman) {
+    info.innerHTML =
+      '<div class="pc-name">' + card.name + (card.isDealer ? ' <span class="dealer-tag">庄</span>' : '') + '</div>' +
+      '<div class="pc-title">' + card.title + '</div>' +
+      '<div class="pc-score">积分 <b>' + card.score + '</b></div>' +
+      '<div class="pc-profit ' + profitClass(card.roundProfit) + '">本局 ' + MahjongStatus.formatProfit(card.roundProfit) + '</div>' +
+      '<div class="pc-meta">手牌 ' + card.handCount + ' 张 · 已出 ' + card.discards + ' 张</div>';
+  } else {
+    const actionCls = card.isTurn ? ' pc-action-active' : (card.justDiscarded ? ' pc-action-discarded' : '');
+    info.innerHTML =
+      '<div class="pc-name">' + card.name + (card.isDealer ? ' <span class="dealer-tag">庄</span>' : '') + '</div>' +
+      '<div class="pc-hand-big">手牌 <b>' + card.handCount + '</b> 张</div>' +
+      '<div class="pc-action' + actionCls + '">' + (card.actionText || '等待中') + '</div>' +
+      '<div class="pc-meta">已出 ' + card.discards + ' 张 · 明牌 ' + card.melds + ' 组 · 积分 ' + card.score + '</div>';
+  }
 
   if (card.isTurn) {
     const bubble = document.createElement('div');
     bubble.className = 'pc-bubble';
-    bubble.textContent = card.isHuman ? '请您出牌' : '思考中…';
+    bubble.textContent = card.isHuman ? '请您出牌' : (card.actionText || '思考中…');
     el.appendChild(bubble);
   }
 
@@ -449,11 +495,12 @@ function render(state) {
     if (p.isHuman) {
       renderHand($('hand-bottom'), state.humanHand, state.drawnTile, state);
       renderMelds($('melds-bottom'), p.melds, 'bottom');
+      renderDiscards($('discards-bottom'), p.discards, 'bottom');
     } else {
-      renderOpponentHand($('hand-' + pos), p.handCount, facing);
+      renderOpponentHand($('hand-' + pos), p.handCount, facing, state.current === p.seat && !state.gameOver);
       renderMelds($('melds-' + pos), p.melds, facing);
+      renderOpponentDiscards($('discards-' + pos), p.discards, facing, state.lastDiscardFrom === p.seat);
     }
-    renderDiscards($('discards-' + pos), p.discards, facing);
   });
 
   renderPlayerCards(state);
@@ -464,6 +511,14 @@ function render(state) {
   if (state.lastDiscard) {
     const spotlight = document.createElement('div');
     spotlight.className = 'center-spotlight';
+    const fromName = state.players[state.lastDiscardFrom]
+      ? state.players[state.lastDiscardFrom].name : '';
+    if (fromName) {
+      const tag = document.createElement('div');
+      tag.className = 'center-discard-from';
+      tag.textContent = fromName + ' 打出';
+      spotlight.appendChild(tag);
+    }
     spotlight.appendChild(renderTile(state.lastDiscard, { facing: 'flat', size: 'md', lastDiscard: true }));
     center.appendChild(spotlight);
   }
