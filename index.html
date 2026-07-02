@@ -6,39 +6,48 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a472a">
-  <meta name="description" content="中国麻将 — 四人单机，支持手机平板横屏">
+  <meta name="description" content="2.5D中国麻将 — 四人单机，支持手机平板横屏">
   <link rel="manifest" href="manifest.json">
-  <title>中国麻将</title>
-  <link rel="stylesheet" href="css/style.css?v=1">
+  <title>2.5D 中国麻将</title>
+  <link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
   <div id="rotate-hint" class="rotate-hint hidden">
     <div class="rotate-box">
       <div class="rotate-icon">📱↻</div>
       <p>建议横屏游玩</p>
-      <p class="sub">旋转设备以获得最佳视野</p>
+      <p class="sub">旋转设备以获得最佳 2.5D 视野</p>
       <button type="button">知道了</button>
     </div>
   </div>
 
   <div id="app">
-    <!-- 开始界面 -->
     <div id="start-screen" class="screen">
       <div class="start-panel">
-        <h1>🀄 中国麻将</h1>
-        <p class="subtitle">四人麻将 · 你对战三位电脑 · 国标简化规则</p>
+        <h1>🀄 2.5D 中国麻将</h1>
+        <p class="subtitle">立体牌桌 · 你对战三位电脑 · 国标简化规则</p>
         <p class="saved-diff">当前难度：<span id="saved-diff-name">普通</span></p>
+
+        <div class="avatar-setup">
+          <p class="setup-label">选择您的头像与昵称</p>
+          <div class="avatar-preview-row">
+            <div id="avatar-preview" class="avatar-circle large">🧑</div>
+            <input id="player-name-input" class="name-input" type="text" maxlength="8" placeholder="输入昵称" value="东家">
+          </div>
+          <div id="avatar-grid" class="avatar-grid"></div>
+        </div>
+
         <div id="difficulty-grid" class="diff-grid"></div>
         <ul class="rule-hints">
           <li>136 张牌：万筒条 + 风牌 + 箭牌</li>
           <li>支持吃（上家）、碰、杠、胡</li>
           <li>胡牌：4 组面子 + 1 对将，或七对</li>
-          <li>电脑 / 平板 / 手机均可，推荐横屏</li>
+          <li>2.5D 立体视角，大牌面，推荐横屏</li>
+          <li>🔊 背景音乐 + 🗣️ 中文语音（碰杠吃胡）</li>
         </ul>
       </div>
     </div>
 
-    <!-- 游戏界面 -->
     <div id="game-screen" class="screen hidden">
       <header class="top-bar">
         <div class="top-left">
@@ -48,55 +57,82 @@
         </div>
         <div id="msg-text" class="msg-text">准备开始</div>
         <div class="top-right">
+          <button id="btn-bgm" type="button" class="icon-btn" title="背景音乐">🔊</button>
+          <button id="btn-voice" type="button" class="icon-btn" title="中文语音">🗣️</button>
           <button id="btn-menu" type="button" class="icon-btn" title="返回">☰</button>
         </div>
       </header>
 
       <div class="table-wrap">
-        <div class="mahjong-table">
-          <!-- 北家 -->
-          <div class="seat seat-top">
-            <div class="seat-head"><span id="name-top">北家</span> <span id="score-top" class="score">0</span></div>
-            <div id="melds-top" class="melds"></div>
-            <div id="hand-top" class="hand hand-opponent"></div>
-            <div id="discards-top" class="discards"></div>
-          </div>
+        <aside id="status-panel" class="status-panel">
+          <h3 class="status-title">📋 局面</h3>
+          <div id="status-situation" class="status-block"></div>
+          <div class="status-divider"></div>
+          <h3 class="status-title">👤 我的数据</h3>
+          <div id="status-stats" class="status-stats"></div>
+        </aside>
 
-          <!-- 西家 -->
-          <div class="seat seat-left">
-            <div class="seat-head vertical"><span id="name-left">西家</span> <span id="score-left" class="score">0</span></div>
-            <div id="melds-left" class="melds vertical"></div>
-            <div id="hand-left" class="hand hand-opponent vertical"></div>
-            <div id="discards-left" class="discards vertical"></div>
-          </div>
-
-          <!-- 中央 -->
-          <div class="table-center">
-            <div id="center-discard" class="center-discard"></div>
-          </div>
-
-          <!-- 东家 -->
-          <div class="seat seat-right">
-            <div class="seat-head vertical"><span id="name-right">南家</span> <span id="score-right" class="score">0</span></div>
-            <div id="melds-right" class="melds vertical"></div>
-            <div id="hand-right" class="hand hand-opponent vertical"></div>
-            <div id="discards-right" class="discards vertical"></div>
-          </div>
-
-          <!-- 玩家 -->
-          <div class="seat seat-bottom">
-            <div id="discards-bottom" class="discards"></div>
-            <div id="melds-bottom" class="melds"></div>
-            <div class="seat-head player-head">
-              <span id="name-bottom">东家(你)</span>
-              <span id="score-bottom" class="score">0</span>
+        <div class="scene-25d">
+          <div class="table-stage">
+            <div class="table-surface">
+              <div class="table-rim"></div>
+              <div class="table-felt">
+                <div id="center-discard" class="center-discard"></div>
+                <div class="wall-indicator">牌墙剩余</div>
+              </div>
             </div>
-            <div id="hand-bottom" class="hand hand-player"></div>
+
+            <div class="seat seat-top" data-seat="top">
+              <div id="card-top" class="player-card"></div>
+              <div id="hand-top" class="hand-zone"></div>
+              <div id="melds-top" class="melds"></div>
+              <div id="discards-top" class="discards"></div>
+            </div>
+
+            <div class="seat seat-left" data-seat="left">
+              <div id="card-left" class="player-card vertical"></div>
+              <div id="hand-left" class="hand-zone"></div>
+              <div id="melds-left" class="melds"></div>
+              <div id="discards-left" class="discards"></div>
+            </div>
+
+            <div class="seat seat-right" data-seat="right">
+              <div id="card-right" class="player-card vertical"></div>
+              <div id="hand-right" class="hand-zone"></div>
+              <div id="melds-right" class="melds"></div>
+              <div id="discards-right" class="discards"></div>
+            </div>
+
+            <div class="seat seat-bottom" data-seat="bottom">
+              <div id="discards-bottom" class="discards"></div>
+              <div id="melds-bottom" class="melds"></div>
+              <div id="card-bottom" class="player-card player-self"></div>
+              <div id="hand-bottom" class="hand-zone hand-player"></div>
+            </div>
           </div>
         </div>
       </div>
 
+      <div id="player-hint" class="player-hint hidden">
+        <div id="hint-step" class="hint-step">① 点击手牌</div>
+        <div id="hint-main" class="hint-main">建议打出【—】</div>
+        <div id="hint-sub" class="hint-sub">再点下方「打出」按钮确认</div>
+      </div>
+
       <div id="action-bar" class="action-bar"></div>
+
+      <div id="flow-overlay" class="flow-overlay hidden">
+        <div class="flow-card">
+          <div id="flow-icon" class="flow-icon">🀄</div>
+          <div id="flow-dice" class="flow-dice hidden">
+            <div class="die" id="die1"><span class="die-face">?</span></div>
+            <div class="die-plus">+</div>
+            <div class="die" id="die2"><span class="die-face">?</span></div>
+          </div>
+          <div id="flow-text" class="flow-text">洗牌中…</div>
+          <div id="flow-sub" class="flow-sub"></div>
+        </div>
+      </div>
 
       <div id="result-overlay" class="overlay hidden">
         <div class="result-card">
@@ -114,7 +150,12 @@
   <script src="js/tiles.js"></script>
   <script src="js/rules.js"></script>
   <script src="js/difficulty.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/avatars.js"></script>
+  <script src="js/status.js"></script>
   <script src="js/ai.js"></script>
+  <script src="js/wall.js"></script>
+  <script src="js/dice.js"></script>
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>

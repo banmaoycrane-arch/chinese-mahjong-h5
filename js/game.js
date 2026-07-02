@@ -1,19 +1,22 @@
-/* global MahjongTiles, MahjongRules, MahjongAI, MahjongDifficulty */
+/* global MahjongTiles, MahjongRules, MahjongAI, MahjongDifficulty, MahjongWall, MahjongDice */
 (function () {
 'use strict';
 
 const { createDeck, shuffle, sortHand, removeTilesFrom, tileLabel } = MahjongTiles;
 const { canHu, canPeng, canGangFromDiscard, canGangFromDraw, canAnGang, canChi, scoreHand } = MahjongRules;
-const { nextSeat, prevSeat, pickDiscard, decideClaim, aiDiscardDelay } = MahjongAI;
+const { nextSeat, prevSeat, pickDiscard, suggestDiscard, decideClaim, aiDiscardDelay } = MahjongAI;
 
 function createPlayer(seat, isHuman) {
-  return { seat, isHuman, hand: [], melds: [], discards: [], name: MahjongAI.SEAT_NAMES[seat] };
+  const name = window.MahjongAvatars
+    ? MahjongAvatars.getSeatDisplayName(seat, isHuman)
+    : MahjongAI.SEAT_NAMES[seat];
+  return { seat, isHuman, hand: [], melds: [], discards: [], name };
 }
 
 function createGame(difficultyId) {
   const diff = MahjongDifficulty.get(difficultyId);
   const players = [0, 1, 2, 3].map((s) => createPlayer(s, s === 0));
-  let wall = [];
+  let wall = null;
   let dealer = 0;
   let current = 0;
   let phase = 'menu';
@@ -22,26 +25,45 @@ function createGame(difficultyId) {
   let drawnTile = null;
   let round = 1;
   const scores = [0, 0, 0, 0];
+  let sessionStartScores = [0, 0, 0, 0];
+  let roundStartScores = [0, 0, 0, 0];
   let message = '';
   let winner = -1;
   let winInfo = null;
   let selectedTile = null;
+  let pendingAction = null;
   let actionButtons = [];
   let gameOver = false;
+  let flowStep = null;
+  let diceRoll = null;
+  let wallBreak = null;
+  let lastGangDice = null;
   let listener = null;
 
   function notify(extra) {
     if (listener) listener(getState(), extra || {});
   }
 
-  function start() {
-    players.forEach((p) => { p.hand = []; p.melds = []; p.discards = []; });
-    wall = shuffle(createDeck());
-    for (let i = 0; i < 13; i++) {
-      players.forEach((p) => p.hand.push(wall.pop()));
+  function snd(event, data) {
+    try {
+      if (window.MahjongAudio && typeof MahjongAudio.onGameEvent === 'function') {
+        MahjongAudio.onGameEvent(event, data || {});
+      }
+    } catch (e) {
+      console.warn('audio skipped', event, e);
     }
-    players.forEach((p) => { p.hand = sortHand(p.hand); });
-    current = dealer;
+  }
+
+  function start() {
+    roundStartScores = scores.slice();
+    players.forEach((p) => {
+      p.name = window.MahjongAvatars
+        ? MahjongAvatars.getSeatDisplayName(p.seat, p.isHuman)
+        : p.name;
+      p.hand = [];
+      p.melds = [];
+      p.discards = [];
+    });
     drawnTile = null;
     lastDiscard = null;
     lastDiscardFrom = -1;
@@ -49,27 +71,218 @@ function createGame(difficultyId) {
     winInfo = null;
     gameOver = false;
     actionButtons = [];
-    message = players[dealer].name + ' 坐庄';
-    beginTurn();
+    selectedTile = null;
+    pendingAction = null;
+    current = dealer;
+    phase = 'flow';
+    flowStep = 'prepare';
+
+    const steps = [];
+    if (round === 1) steps.push({ step: 'game_start' });
+    else steps.push({ step: 'new_round' });
+    steps.push({ step: 'dice_wall', data: {} });
+    steps.push({ step: 'dice_break', data: {} });
+    steps.push({ step: 'shuffle' });
+    steps.push({ step: 'deal' });
+    steps.push({ step: 'dealer', data: {} });
+    steps.push({ step: 'ready' });
+
+    const runFlow = window.MahjongAudio && MahjongAudio.runFlowSequence;
+    if (!runFlow) {
+      doRollWallDice();
+      doRollBreakDice();
+      doShuffleAndDeal();
+      doDealTiles();
+      message = players[dealer].name + ' 坐庄';
+      flowStep = null;
+      beginTurn();
+      return;
+    }
+
+    message = '准备开始…';
+    diceRoll = null;
+    wallBreak = null;
+    lastGangDice = null;
+    notify();
+
+    MahjongAudio.runFlowSequence(steps, {
+      onStep: (step, data, cfg) => {
+        flowStep = step;
+        if (step === 'dice_wall') {
+          const wr = doRollWallDice();
+          data.roll = wr;
+          data.round = round;
+          data.dealer = dealer;
+          data.dealerName = players[dealer].name;
+          message = window.MahjongDice
+            ? MahjongDice.describeWallRoll(dealer, wr)
+            : ('色子 ' + wr.sum + ' 点');
+        }
+        if (step === 'dice_break') {
+          const br = doRollBreakDice();
+          data.roll = br.break;
+          data.breakInfo = br.breakInfo;
+          wallBreak = br.breakInfo;
+          message = window.MahjongDice
+            ? MahjongDice.describeBreakRoll(br.breakInfo)
+            : ('色子 ' + br.break.sum + ' 点');
+        }
+        if (step === 'shuffle') doShuffleAndDeal();
+        if (step === 'deal') doDealTiles();
+        if (step === 'dealer') {
+          data.dealerName = players[dealer].name;
+          data.breakInfo = wallBreak;
+          message = players[dealer].name + ' 坐庄';
+        }
+        if (cfg && cfg.label && step !== 'dice_wall' && step !== 'dice_break' && step !== 'dealer') {
+          message = cfg.label;
+        }
+        notify();
+      },
+      onComplete: () => {
+        flowStep = null;
+        message = players[dealer].name + ' 坐庄，请出牌';
+        beginTurn();
+      },
+    });
+  }
+
+  function doRollWallDice() {
+    const roll = window.MahjongDice ? MahjongDice.rollPair() : { d1: 3, d2: 4, sum: 7 };
+    diceRoll = { wall: roll, break: null, breakInfo: null };
+    return roll;
+  }
+
+  function doRollBreakDice() {
+    const br = window.MahjongDice ? MahjongDice.rollPair() : { d1: 2, d2: 5, sum: 7 };
+    const wallSum = diceRoll && diceRoll.wall ? diceRoll.wall.sum : 7;
+    const breakInfo = MahjongWall.calcWallBreak(dealer, wallSum, br.sum);
+    diceRoll.break = br;
+    diceRoll.breakInfo = breakInfo;
+    wallBreak = breakInfo;
+    return { break: br, breakInfo };
+  }
+
+  function doShuffleAndDeal() {
+    const deck = shuffle(createDeck());
+    if (!diceRoll || !diceRoll.breakInfo) {
+      const wr = diceRoll && diceRoll.wall ? diceRoll.wall : MahjongDice.rollPair();
+      const br = MahjongDice.rollPair();
+      const breakInfo = MahjongWall.calcWallBreak(dealer, wr.sum, br.sum);
+      diceRoll = { wall: wr, break: br, breakInfo };
+      wallBreak = breakInfo;
+    }
+    wall = MahjongWall.createDrawWall(deck, diceRoll.breakInfo);
+  }
+
+  function doDealTiles() {
+    if (!wall) return;
+    wall.skipDun(1);
+    let seat = dealer;
+    for (let r = 0; r < 3; r++) {
+      for (let p = 0; p < 4; p++) {
+        for (let t = 0; t < 4; t++) {
+          const tile = wall.draw();
+          if (tile) players[seat].hand.push(tile);
+        }
+        seat = (seat + 1) % 4;
+      }
+    }
+    for (let p = 0; p < 4; p++) {
+      const tile = wall.draw();
+      if (tile) players[(dealer + p) % 4].hand.push(tile);
+    }
+    players.forEach((p) => { p.hand = sortHand(p.hand); });
+  }
+
+  function wallCount() {
+    return wall ? wall.remaining() : 0;
+  }
+
+  function drawFromWall() {
+    return wall ? wall.draw() : null;
+  }
+
+  function drawFromTail() {
+    return wall ? wall.drawFromTail() : null;
   }
 
   function beginTurn() {
-    if (wall.length === 0) { endDraw(); return; }
-    const tile = wall.pop();
-    const p = players[current];
-    p.hand.push(tile);
-    p.hand = sortHand(p.hand);
-    drawnTile = p.isHuman ? tile : null;
-    message = p.name + (p.isHuman ? ' 请打牌' : ' 思考中…');
-    if (p.isHuman) {
-      phase = 'discard';
-      buildHumanDiscardActions();
-    } else {
-      phase = 'ai-discard';
-      notify({ aiDiscard: true, delay: aiDiscardDelay(diff) });
-      return;
+    let aiExtra = null;
+    try {
+      if (!wall || wallCount() === 0) { endDraw(); return; }
+      const tile = drawFromWall();
+      if (!tile) { endDraw(); return; }
+      const p = players[current];
+      p.hand.push(tile);
+      p.hand = sortHand(p.hand);
+      drawnTile = p.isHuman ? tile : null;
+      if (p.isHuman) {
+        phase = 'discard';
+        buildHumanDiscardActions();
+        message = buildDiscardHint().hintText;
+        snd('draw');
+        snd('your_turn');
+      } else {
+        message = p.name + ' 思考中…';
+        phase = 'ai-discard';
+        aiExtra = { aiDiscard: true, delay: aiDiscardDelay(diff) };
+      }
+    } catch (err) {
+      console.error('beginTurn failed', err);
+      flowStep = null;
+      if (players[current] && players[current].isHuman) {
+        phase = 'discard';
+        buildHumanDiscardActions();
+        message = '请出牌';
+      }
+    } finally {
+      if (!gameOver && phase !== 'end') notify(aiExtra || {});
     }
-    notify();
+  }
+
+  function splitDisplayHand() {
+    const p = players[0];
+    if (!drawnTile || current !== 0) {
+      return { hand: p.hand.slice(), drawn: null };
+    }
+    return {
+      hand: p.hand.filter((t) => t !== drawnTile),
+      drawn: drawnTile,
+    };
+  }
+
+  function buildDiscardHint() {
+    const p = players[0];
+    const { hand, drawn } = splitDisplayHand();
+    const full = drawn ? hand.concat([drawn]) : hand.slice();
+    const suggested = suggestDiscard(full, p.melds);
+    const name = tileLabel(suggested);
+    if (pendingAction) {
+      return { suggested, hintText: '请确认操作：' + pendingAction.label };
+    }
+    if (actionButtons.some((b) => b.type === 'zimo')) {
+      return { suggested, hintText: '可先点「自摸胡」，或选一张牌再点「打出」' };
+    }
+    if (selectedTile) {
+      const selName = tileLabel(selectedTile);
+      return { suggested, hintText: '已选中【' + selName + '】→ 点下方「打出」确认（建议打【' + name + '】）' };
+    }
+    return {
+      suggested,
+      hintText: '① 请先点击要打出的牌（建议【' + name + '】）→ ② 再点「打出」',
+    };
+  }
+
+  function buildClaimHint(tile) {
+    if (pendingAction) {
+      return '请确认：' + pendingAction.label + '？点「确认」执行，或「取消」';
+    }
+    const labels = actionButtons.map((b) => b.label.replace(/^(胡|碰|杠|吃)\s*/, '$1'));
+    if (labels.length) {
+      return '对方打出【' + tileLabel(tile) + '】→ 请选择：' + labels.join(' / ') + ' / 过';
+    }
+    return '';
   }
 
   function buildHumanDiscardActions() {
@@ -151,16 +364,20 @@ function createGame(difficultyId) {
     gameOver = true;
     message = p.name + (isZimo ? ' 自摸' : ' 点炮胡') + '，' + fan + ' 番';
     actionButtons = [];
+    snd(isZimo ? 'zimo' : 'hu', { fan, isZimo });
     notify();
   }
 
   function afterDiscard(seat, tile) {
+    players[seat].discards.push(tile);
     lastDiscard = tile;
     lastDiscardFrom = seat;
     drawnTile = null;
     selectedTile = null;
+    pendingAction = null;
     phase = 'claim';
     message = players[seat].name + ' 打出 ' + tileLabel(tile);
+    snd('discard', { tileLabel: tileLabel(tile) });
 
     const claims = [];
     let s = nextSeat(seat);
@@ -181,7 +398,7 @@ function createGame(difficultyId) {
     buildHumanClaimActions(tile, seat);
     if (actionButtons.length) {
       phase = 'human-claim';
-      message = '可以吃碰杠胡，或点「过」';
+      message = buildClaimHint(tile);
       notify();
       return;
     }
@@ -201,12 +418,14 @@ function createGame(difficultyId) {
       addMeld(seat, 'peng', [tile, tile, tile], tile);
       current = seat;
       message = p.name + ' 碰！';
+      snd('peng');
       afterMeldNeedDiscard();
       return;
     }
     if (action === 'gang') {
       addMeld(seat, 'gang', [tile, tile, tile, tile], tile);
       current = seat;
+      snd('gang');
       drawGangBonus();
       return;
     }
@@ -214,6 +433,7 @@ function createGame(difficultyId) {
       addMeld(seat, 'chi', combo, tile);
       current = seat;
       message = p.name + ' 吃！';
+      snd('chi');
       afterMeldNeedDiscard();
       return;
     }
@@ -221,12 +441,17 @@ function createGame(difficultyId) {
 
   function drawGangBonus() {
     const p = players[current];
-    message = p.name + ' 杠！';
-    if (wall.length) {
-      const t = wall.pop();
-      p.hand.push(t);
-      p.hand = sortHand(p.hand);
-      drawnTile = p.isHuman ? t : null;
+    const gd = MahjongDice.rollPair();
+    lastGangDice = gd;
+    message = p.name + ' 杠！掷色子补牌 ' + gd.d1 + '+' + gd.d2 + '=' + gd.sum;
+    snd('gang_dice', { roll: gd });
+    if (wall && wallCount() > 0) {
+      const t = drawFromTail();
+      if (t) {
+        p.hand.push(t);
+        p.hand = sortHand(p.hand);
+        drawnTile = p.isHuman ? t : null;
+      }
     }
     afterMeldNeedDiscard();
   }
@@ -235,7 +460,11 @@ function createGame(difficultyId) {
     const p = players[current];
     if (p.isHuman) {
       phase = 'discard';
+      selectedTile = null;
+      pendingAction = null;
       buildHumanDiscardActions();
+      const hint = buildDiscardHint();
+      message = hint.hintText;
       notify();
     } else {
       phase = 'ai-discard';
@@ -250,23 +479,46 @@ function createGame(difficultyId) {
   }
 
   function humanDiscard(tile) {
-    if (current !== 0 || (phase !== 'discard' && phase !== 'human-claim')) return false;
+    if (current !== 0 || phase !== 'discard') return false;
+    if (!tile) return false;
     const p = players[0];
     const res = removeTilesFrom(p.hand, [tile]);
     if (!res.ok) return false;
     p.hand = res.hand;
+    selectedTile = null;
+    pendingAction = null;
     actionButtons = [];
+    drawnTile = null;
     afterDiscard(0, tile);
     return true;
   }
 
   function humanPass() {
     if (phase !== 'human-claim') return;
+    pendingAction = null;
     actionButtons = [];
+    snd('pass');
     nextTurn();
   }
 
-  function humanAction(btn) {
+  function requestAction(btn) {
+    pendingAction = btn;
+    notify();
+  }
+
+  function cancelPendingAction() {
+    pendingAction = null;
+    notify();
+  }
+
+  function confirmPendingAction() {
+    if (!pendingAction) return;
+    const btn = pendingAction;
+    pendingAction = null;
+    executeHumanAction(btn);
+  }
+
+  function executeHumanAction(btn) {
     if (btn.type === 'zimo') {
       doWin(0, btn.tile, true);
       return;
@@ -279,12 +531,14 @@ function createGame(difficultyId) {
       addMeld(0, 'peng', [btn.tile, btn.tile, btn.tile], btn.tile);
       current = 0;
       message = '你碰了！请出牌';
+      snd('peng');
       afterMeldNeedDiscard();
       return;
     }
     if (btn.type === 'gang') {
       addMeld(0, 'gang', [btn.tile, btn.tile, btn.tile, btn.tile], btn.tile);
       current = 0;
+      snd('gang');
       drawGangBonus();
       return;
     }
@@ -292,6 +546,7 @@ function createGame(difficultyId) {
       addMeld(0, 'chi', btn.combo, btn.tile);
       current = 0;
       message = '你吃了！请出牌';
+      snd('chi');
       afterMeldNeedDiscard();
       return;
     }
@@ -299,6 +554,7 @@ function createGame(difficultyId) {
       const t = btn.tile;
       addMeld(0, 'angang', [t, t, t, t], t);
       current = 0;
+      snd('angang');
       drawGangBonus();
       return;
     }
@@ -308,6 +564,7 @@ function createGame(difficultyId) {
         peng.type = 'gang';
         peng.tiles.push(btn.tile);
         players[0].hand = removeTilesFrom(players[0].hand, [btn.tile]).hand;
+        snd('bugang');
         drawGangBonus();
       }
     }
@@ -329,6 +586,7 @@ function createGame(difficultyId) {
     winner = -1;
     message = '流局，牌墙已尽';
     actionButtons = [];
+    snd('liuju');
     notify();
   }
 
@@ -340,6 +598,16 @@ function createGame(difficultyId) {
   }
 
   function getState() {
+    let suggestedDiscard = null;
+    let hintText = message;
+    const display = splitDisplayHand();
+    if (current === 0 && phase === 'discard' && !gameOver) {
+      const hint = buildDiscardHint();
+      suggestedDiscard = hint.suggested;
+      hintText = hint.hintText;
+    } else if (phase === 'human-claim' && lastDiscard) {
+      hintText = buildClaimHint(lastDiscard);
+    }
     return {
       players: players.map((p) => ({
         seat: p.seat,
@@ -349,30 +617,45 @@ function createGame(difficultyId) {
         melds: p.melds,
         discards: p.discards,
       })),
-      humanHand: players[0].hand,
-      drawnTile: current === 0 ? drawnTile : null,
-      wallCount: wall.length,
+      humanHand: display.hand,
+      drawnTile: display.drawn,
+      wallCount: wallCount(),
       current,
       dealer,
       phase,
-      message,
+      message: hintText,
+      hintText,
+      suggestedDiscard,
       lastDiscard,
       lastDiscardFrom,
       selectedTile,
+      pendingAction,
       actionButtons,
       scores,
+      sessionStartScores,
+      roundStartScores,
       round,
       winner,
       winInfo,
       gameOver,
+      flowStep,
+      diceRoll,
+      wallBreak,
+      lastGangDice,
       difficulty: diff,
     };
   }
 
   function selectTile(tile) {
-    if (phase !== 'discard' || current !== 0) return;
-    selectedTile = selectedTile && selectedTile.id === tile.id ? null : tile;
+    if (phase !== 'discard' || current !== 0 || pendingAction) return;
+    selectedTile = (selectedTile === tile) ? null : tile;
+    if (selectedTile) snd('select');
     notify();
+  }
+
+  function confirmDiscard() {
+    if (!selectedTile) return false;
+    return humanDiscard(selectedTile);
   }
 
   function onUpdate(fn) { listener = fn; }
@@ -380,7 +663,8 @@ function createGame(difficultyId) {
   phase = 'ready';
 
   return {
-    getState, onUpdate, start, selectTile, humanDiscard, humanPass, humanAction,
+    getState, onUpdate, start, selectTile, confirmDiscard, humanDiscard, humanPass,
+    requestAction, confirmPendingAction, cancelPendingAction,
     aiDiscard, newRound,
   };
 }

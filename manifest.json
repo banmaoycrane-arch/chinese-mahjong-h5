@@ -1,7 +1,7 @@
 {
-  "name": "中国麻将",
+  "name": "2.5D 中国麻将",
   "short_name": "麻将",
-  "description": "四人中国麻将单机版",
+  "description": "2.5D立体中国麻将单机版",
   "start_url": "./index.html",
   "display": "fullscreen",
   "orientation": "landscape",

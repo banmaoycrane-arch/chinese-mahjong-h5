@@ -73,12 +73,16 @@ function decideClaim(seat, hand, melds, tile, fromSeat, diff, isHumanTurn) {
   return null;
 }
 
+function suggestDiscard(hand, melds) {
+  return pickDiscard(hand, melds, { aiMistakeRate: 0, aiDefense: 0 });
+}
+
 function aiDiscardDelay(diff) {
   return Math.floor(diff.aiThinkMs * diff.aiDelayMul * (0.7 + Math.random() * 0.6));
 }
 
 window.MahjongAI = {
   SEAT_NAMES, nextSeat, prevSeat,
-  pickDiscard, decideClaim, aiDiscardDelay, tileUsefulness,
+  pickDiscard, suggestDiscard, decideClaim, aiDiscardDelay, tileUsefulness,
 };
 })();
