@@ -3,6 +3,7 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', function () {
+  if (window.MahjongDevice) MahjongDevice.initDeviceLayout();
   const saved = MahjongDifficulty.loadSaved();
   const d = MahjongDifficulty.get(saved);
   const el = document.getElementById('saved-diff-name');

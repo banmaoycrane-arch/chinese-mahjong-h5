@@ -439,6 +439,9 @@ function render(state) {
   $('round-num').textContent = state.round;
   $('diff-tag').textContent = state.difficulty.icon + ' ' + state.difficulty.name;
 
+  const verEl = $('app-version');
+  if (verEl && window.MAHJONG_BUILD) verEl.textContent = MAHJONG_BUILD.label;
+
   state.players.forEach((p) => {
     const pos = SEAT_POS[p.seat];
     const facing = SEAT_FACING[pos];
@@ -586,6 +589,12 @@ function initUI() {
     clearAiTimer();
   });
 
+  if (window.MahjongDevice) {
+    window.addEventListener('resize', () => {
+      if (game) render(game.getState());
+    });
+  }
+
   $('rotate-hint').addEventListener('click', () => {
     $('rotate-hint').classList.add('hidden');
   });
@@ -596,6 +605,10 @@ function initUI() {
 }
 
 function checkOrientation() {
+  if (window.MahjongDevice) {
+    MahjongDevice.applyDeviceClasses();
+    return;
+  }
   const hint = $('rotate-hint');
   if (!hint) return;
   const portrait = window.innerHeight > window.innerWidth && window.innerWidth < 900;

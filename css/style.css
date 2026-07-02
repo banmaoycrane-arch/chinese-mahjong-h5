@@ -25,6 +25,8 @@ html, body {
   color: var(--text);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  /* 手机刘海 / 底部横条安全区 */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 #app { width: 100%; height: 100%; }
@@ -111,9 +113,20 @@ html, body {
   background: rgba(0,0,0,0.45); flex-shrink: 0; font-size: 13px; gap: 8px;
 }
 .top-left, .top-right { display: flex; gap: 10px; align-items: center; white-space: nowrap; }
+.app-version {
+  font-size: 10px; opacity: 0.55; padding: 2px 6px;
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 4px;
+}
+html[data-device="phone"] .app-version { display: none; }
 .msg-text { flex: 1; text-align: center; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .icon-btn.off { opacity: 0.45; }
-.icon-btn { background: rgba(255,255,255,0.12); border: none; color: var(--text); width: 36px; height: 32px; border-radius: 6px; font-size: 18px; cursor: pointer; }
+.icon-btn {
+  background: rgba(255,255,255,0.12); border: none; color: var(--text);
+  width: 36px; height: 32px; border-radius: 6px; font-size: 18px; cursor: pointer;
+  flex-shrink: 0;
+}
+.icon-btn.active { background: rgba(240,192,64,0.35); border: 1px solid var(--gold); }
+.btn-status-toggle { display: none; }
 
 /* ===== 2.5D 场景 ===== */
 .table-wrap {
@@ -288,7 +301,15 @@ html, body {
   justify-content: center; align-items: flex-end;
   padding: 4px 0;
 }
-.hand-player .hand-row { gap: 4px; padding-bottom: 6px; }
+.hand-player .hand-row {
+  gap: 4px; padding-bottom: 6px;
+  overflow-x: auto; overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  max-width: 100%;
+  padding-left: 4px; padding-right: 4px;
+}
+.hand-player .hand-row .tile-3d { scroll-snap-align: center; }
 
 .drawn-gap { width: 14px; flex-shrink: 0; }
 
@@ -603,49 +624,214 @@ html, body {
 }
 .btn.primary { background: var(--gold); color: #222; border-color: var(--gold); font-weight: bold; }
 
-/* ===== 响应式 ===== */
+/* ============================================================
+   分设备适配：desktop / laptop / tablet / phone
+   html[data-device] 由 js/device.js 设置
+   ============================================================ */
+
+/* ---------- 台式 PC（≥1440px）大视野 ---------- */
+html[data-device="desktop"] {
+  --tw-lg: 64px; --th-lg: 86px; --td-lg: 14px;
+  --tw-md: 54px; --th-md: 72px; --td-md: 11px;
+  --tw-sm: 46px; --th-sm: 60px; --td-sm: 9px;
+  --bar-h: 46px; --action-h: 58px;
+}
+html[data-device="desktop"] .status-panel { width: 190px; font-size: 12px; }
+html[data-device="desktop"] .scene-25d { max-width: 1280px; margin: 0 auto; }
+html[data-device="desktop"] .size-lg .tile-text { font-size: 25px; }
+html[data-device="desktop"] .start-panel { max-width: 560px; }
+html[data-device="desktop"] .diff-grid { grid-template-columns: repeat(4, 1fr); }
+
+/* ---------- 笔记本（1024–1439px）默认基准 ---------- */
+html[data-device="laptop"] .status-panel { width: 168px; }
+html[data-device="laptop"] .scene-25d { max-width: 1100px; }
+
+/* ---------- 平板（768–1023px） ---------- */
+html[data-device="tablet"] {
+  --tw-lg: 52px; --th-lg: 70px; --td-lg: 10px;
+  --tw-md: 44px; --th-md: 58px; --td-md: 8px;
+  --tw-sm: 38px; --th-sm: 50px; --td-sm: 7px;
+  --bar-h: 40px; --action-h: 52px;
+}
+html[data-device="tablet"] .status-panel {
+  width: 148px; font-size: 11px; padding: 8px;
+}
+html[data-device="tablet"] .btn-status-toggle { display: inline-flex; }
+html[data-device="tablet"] .table-wrap { gap: 6px; padding: 4px 6px; }
+html[data-device="tablet"] .table-surface { left: 10%; right: 10%; top: 17%; bottom: 27%; }
+html[data-device="tablet"] .seat-left, html[data-device="tablet"] .seat-right { width: 13%; }
+html[data-device="tablet"] .seat-top { width: 72%; }
+html[data-device="tablet"] .seat-bottom { width: 98%; }
+html[data-device="tablet"] .size-lg .tile-text { font-size: 20px; }
+html[data-device="tablet"] .player-hint { margin: 0 8px; padding: 6px 10px; }
+html[data-device="tablet"] .hint-main { font-size: 15px; }
+html[data-device="tablet"] .action-btn { padding: 10px 16px; font-size: 14px; min-height: 44px; }
+html[data-device="tablet"] .top-left { font-size: 12px; gap: 8px; }
+html[data-device="tablet"] .avatar-grid { grid-template-columns: repeat(6, 1fr); }
+html[data-device="tablet"] .table-stage { transform: rotateX(7deg); }
+
+/* 平板竖屏：局面面板改为侧滑抽屉 */
+html[data-device="tablet"][data-orientation="portrait"] .status-panel {
+  position: fixed; top: var(--bar-h); left: 0; bottom: calc(var(--action-h) + 80px);
+  width: min(280px, 78vw); z-index: 80;
+  transform: translateX(-105%);
+  transition: transform 0.25s ease;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.45);
+}
+html[data-device="tablet"][data-orientation="portrait"] .status-panel.panel-open {
+  transform: translateX(0);
+}
+html[data-device="tablet"][data-orientation="portrait"] .table-wrap {
+  flex-direction: column;
+}
+html[data-device="tablet"][data-orientation="portrait"] .scene-25d {
+  flex: 1; min-height: 0; max-width: none;
+}
+html[data-device="tablet"][data-orientation="portrait"] .table-stage { transform: rotateX(5deg); }
+
+/* ---------- 手机（≤767px） ---------- */
+html[data-device="phone"] {
+  --tw-lg: 46px; --th-lg: 62px; --td-lg: 9px;
+  --tw-md: 38px; --th-md: 50px; --td-md: 7px;
+  --tw-sm: 32px; --th-sm: 42px; --td-sm: 6px;
+  --bar-h: 38px; --action-h: auto;
+}
+html[data-device="phone"] .btn-status-toggle { display: inline-flex; }
+html[data-device="phone"] .top-bar { padding: 0 8px; font-size: 11px; }
+html[data-device="phone"] .top-left span:not(#diff-tag) { display: none; }
+html[data-device="phone"] .top-left #diff-tag { font-size: 11px; }
+html[data-device="phone"] .msg-text { font-size: 12px; }
+html[data-device="phone"] .icon-btn { width: 34px; height: 30px; font-size: 16px; }
+
+html[data-device="phone"] .table-wrap {
+  flex-direction: column; padding: 2px 4px 0; gap: 0;
+}
+html[data-device="phone"] .status-panel {
+  position: fixed; top: var(--bar-h); left: 0; right: 0;
+  max-height: 42vh; width: auto; z-index: 85;
+  transform: translateY(-110%);
+  transition: transform 0.25s ease;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+}
+html[data-device="phone"] .status-panel.panel-open { transform: translateY(0); }
+
+html[data-device="phone"] .scene-25d {
+  flex: 1; min-height: 0; max-width: none; perspective: 1100px;
+}
+html[data-device="phone"] .table-stage { transform: rotateX(5deg); }
+html[data-device="phone"] .table-surface {
+  left: 6%; right: 6%; top: 14%; bottom: 24%;
+}
+html[data-device="phone"] .seat-top { width: 78%; top: 1%; }
+html[data-device="phone"] .seat-bottom { width: 100%; bottom: 0; }
+html[data-device="phone"] .seat-left, html[data-device="phone"] .seat-right {
+  width: 11%; height: 50%;
+}
+html[data-device="phone"] .player-card.vertical .pc-inner { padding: 4px 3px; }
+html[data-device="phone"] .pc-name { font-size: 9px; }
+html[data-device="phone"] .pc-score, html[data-device="phone"] .pc-profit { font-size: 9px; }
+html[data-device="phone"] .pc-meta, html[data-device="phone"] .pc-title { display: none; }
+html[data-device="phone"] .avatar-circle { width: 28px; height: 28px; font-size: 14px; }
+html[data-device="phone"] .pc-bubble { font-size: 9px; padding: 1px 6px; top: -18px; }
+
+html[data-device="phone"] .size-lg .tile-text { font-size: 17px; }
+html[data-device="phone"] .size-md .tile-text { font-size: 14px; }
+html[data-device="phone"] .size-sm .tile-text { font-size: 12px; }
+html[data-device="phone"] .drawn-gap { width: 10px; }
+html[data-device="phone"] .hand-player .hand-row { gap: 3px; padding-bottom: 4px; }
+
+html[data-device="phone"] .player-hint {
+  margin: 0 6px; padding: 6px 8px; flex-direction: column; align-items: flex-start; gap: 4px;
+}
+html[data-device="phone"] .hint-main { font-size: 14px; min-width: 0; width: 100%; }
+html[data-device="phone"] .hint-sub { font-size: 11px; }
+
+html[data-device="phone"] .action-bar {
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  gap: 6px;
+}
+html[data-device="phone"] .action-btn {
+  padding: 10px 14px; font-size: 14px; min-height: 44px; min-width: 44px;
+  flex: 1 1 auto; max-width: 100%;
+}
+html[data-device="phone"] .action-btn.discard-confirm { flex: 1 1 100%; }
+html[data-device="phone"] .action-btn.confirm-btn { min-width: 0; flex: 1 1 45%; }
+
+html[data-device="phone"] .start-panel { padding: 0 8px; }
+html[data-device="phone"] .diff-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+html[data-device="phone"] .diff-btn { padding: 14px 8px; }
+html[data-device="phone"] .avatar-grid { grid-template-columns: repeat(4, 1fr); }
+html[data-device="phone"] .name-input { width: 100px; font-size: 14px; }
+html[data-device="phone"] .rule-hints { font-size: 12px; padding: 12px; }
+
+html[data-device="phone"] .flow-card { padding: 20px 24px; max-width: 92vw; }
+html[data-device="phone"] .flow-text { font-size: 18px; }
+html[data-device="phone"] .die { width: 48px; height: 48px; }
+html[data-device="phone"] .die-face { font-size: 34px; }
+
+/* 手机横屏：压缩高度，保留手牌区 */
+html[data-device="phone"][data-orientation="landscape"] {
+  --tw-lg: 42px; --th-lg: 56px; --td-lg: 8px;
+  --bar-h: 34px;
+}
+html[data-device="phone"][data-orientation="landscape"] .status-panel {
+  position: fixed; top: var(--bar-h); left: 0; bottom: calc(var(--action-h) + 48px);
+  width: 140px; max-height: none; transform: translateX(-105%);
+  border-radius: 0 12px 12px 0;
+}
+html[data-device="phone"][data-orientation="landscape"] .status-panel.panel-open {
+  transform: translateX(0);
+}
+html[data-device="phone"][data-orientation="landscape"] .table-wrap {
+  flex-direction: row;
+}
+html[data-device="phone"][data-orientation="landscape"] .table-surface {
+  left: 8%; right: 8%; top: 16%; bottom: 28%;
+}
+html[data-device="phone"][data-orientation="landscape"] .player-hint {
+  flex-direction: row; flex-wrap: wrap;
+}
+html[data-device="phone"][data-orientation="landscape"] .top-left span:nth-child(2),
+html[data-device="phone"][data-orientation="landscape"] .top-left span:nth-child(3) {
+  display: inline;
+}
+
+/* 手机竖屏：更紧凑牌桌 */
+html[data-device="phone"][data-orientation="portrait"] .table-surface {
+  left: 4%; right: 4%; top: 12%; bottom: 22%;
+}
+html[data-device="phone"][data-orientation="portrait"] .seat-left,
+html[data-device="phone"][data-orientation="portrait"] .seat-right {
+  width: 10%; height: 46%;
+}
+html[data-device="phone"][data-orientation="portrait"] .table-stage { transform: rotateX(3deg); }
+
+/* ---------- 触控优化（手机 + 平板） ---------- */
+html[data-touch="1"] .hand-player .tile-3d.selectable:active {
+  transform: rotateX(-8deg) translateY(-8px) translateZ(14px) scale(1.03);
+}
+html[data-touch="1"] .hand-player .tile-3d.facing-bottom:hover {
+  transform: rotateX(-8deg) translateZ(8px);
+}
+html[data-touch="1"] .action-btn { min-height: 44px; }
+html[data-touch="1"] .diff-btn { min-height: 56px; }
+
+/* ---------- 矮屏（小屏笔记本 / 手机横屏） ---------- */
+@media (max-height: 520px) and (orientation: landscape) {
+  :root { --bar-h: 34px; }
+  .player-hint { padding: 4px 8px; }
+  .hint-main { font-size: 13px; }
+  .hint-sub { display: none; }
+  .table-stage { transform: rotateX(4deg) !important; }
+  .pc-bubble { display: none; }
+  .flow-card { padding: 16px 24px; }
+}
+
+/* ---------- 兼容旧媒体查询（无 JS 时降级） ---------- */
 @media (max-width: 900px) {
-  .status-panel {
-    width: 130px; font-size: 10px; padding: 8px;
-  }
   .avatar-grid { grid-template-columns: repeat(4, 1fr); }
-  .pc-name { font-size: 10px; }
-  .pc-inner { padding: 4px 6px; gap: 4px; }
-  .avatar-circle { width: 36px; height: 36px; font-size: 18px; }
-  :root {
-    --tw-lg: 50px; --th-lg: 68px; --td-lg: 10px;
-    --tw-md: 42px; --th-md: 56px; --td-md: 8px;
-    --tw-sm: 36px; --th-sm: 48px; --td-sm: 7px;
-  }
-  .size-lg .tile-text { font-size: 19px; }
-  .size-md .tile-text { font-size: 16px; }
-  .size-sm .tile-text { font-size: 13px; }
-  .table-surface { left: 8%; right: 8%; top: 16%; bottom: 26%; }
-  .seat-left, .seat-right { width: 12%; }
 }
-
-@media (max-height: 500px) {
-  .status-panel { display: none; }
-  :root {
-    --tw-lg: 44px; --th-lg: 58px;
-    --bar-h: 36px; --action-h: 44px;
-  }
-  .size-lg .tile-text { font-size: 17px; }
-  .table-stage { transform: rotateX(5deg); }
-}
-
-@media (min-width: 1200px) {
-  :root {
-    --tw-lg: 62px; --th-lg: 84px; --td-lg: 14px;
-    --tw-md: 52px; --th-md: 70px;
-  }
-  .size-lg .tile-text { font-size: 24px; }
-}
-
-@media (orientation: portrait) and (max-width: 600px) {
-  .scene-25d { perspective: 1000px; }
-  .table-stage { transform: rotateX(4deg); }
-  :root {
-    --tw-lg: 42px; --th-lg: 56px;
-  }
+@media (min-width: 1440px) {
+  .scene-25d { max-width: 1280px; }
 }
