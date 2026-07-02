@@ -2,6 +2,8 @@
 
 独立 H5 项目，与桌面上的「塔防游戏」**完全隔离**，单独文件夹、单独启动，方便后续管理。
 
+**GitHub 仓库（独立）：** https://github.com/banmaoycrane-arch/chinese-mahjong-h5
+
 ## 快速开始
 
 **方式一（推荐）：** 双击桌面 `Play-Chinese-Mahjong.bat`
