@@ -9,7 +9,7 @@
   <meta name="description" content="2.5D中国麻将 — 四人单机，支持手机平板横屏">
   <link rel="manifest" href="manifest.json">
   <title>2.5D 中国麻将</title>
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
   <div id="rotate-hint" class="rotate-hint hidden">
@@ -104,21 +104,23 @@
               <div id="melds-right" class="melds"></div>
               <div id="discards-right" class="discards"></div>
             </div>
+          </div>
 
-            <div class="seat seat-bottom" data-seat="bottom">
-              <div id="discards-bottom" class="discards"></div>
-              <div id="melds-bottom" class="melds"></div>
-              <div id="card-bottom" class="player-card player-self"></div>
-              <div id="hand-bottom" class="hand-zone hand-player"></div>
+          <!-- 玩家操作区：独立于 3D 牌桌，避免选牌/提示被桌面遮挡 -->
+          <div class="player-dock">
+            <div id="player-hint" class="player-hint hidden">
+              <div id="hint-step" class="hint-step">① 点击手牌</div>
+              <div id="hint-main" class="hint-main">建议打出【—】</div>
+              <div id="hint-sub" class="hint-sub">再点下方「打出」按钮确认</div>
             </div>
+            <div class="player-dock-table">
+              <div id="discards-bottom" class="discards discards-self"></div>
+              <div id="melds-bottom" class="melds melds-self"></div>
+              <div id="card-bottom" class="player-card player-self"></div>
+            </div>
+            <div id="hand-bottom" class="hand-zone hand-player"></div>
           </div>
         </div>
-      </div>
-
-      <div id="player-hint" class="player-hint hidden">
-        <div id="hint-step" class="hint-step">① 点击手牌</div>
-        <div id="hint-main" class="hint-main">建议打出【—】</div>
-        <div id="hint-sub" class="hint-sub">再点下方「打出」按钮确认</div>
       </div>
 
       <div id="action-bar" class="action-bar"></div>

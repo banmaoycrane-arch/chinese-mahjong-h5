@@ -158,24 +158,30 @@ html[data-device="phone"] .app-version { display: none; }
 .scene-25d {
   flex: 1; max-width: 1200px; min-width: 0;
   perspective: 1400px;
-  perspective-origin: 50% 42%;
+  perspective-origin: 50% 36%;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .table-stage {
-  width: 100%; height: 100%;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transform: rotateX(8deg);
+  transform: rotateX(10deg);
+  overflow: visible;
 }
 
-/* 牌桌台面 */
+/* 牌桌台面 — 居中，为下方玩家区留出空间 */
 .table-surface {
   position: absolute;
-  left: 12%; right: 12%;
-  top: 18%; bottom: 28%;
+  left: 14%; right: 14%;
+  top: 12%; bottom: 18%;
   transform-style: preserve-3d;
-  transform: translateZ(-20px);
+  transform: translateZ(-24px);
 }
 
 .table-rim {
@@ -237,15 +243,47 @@ html[data-device="phone"] .app-version { display: none; }
   width: 96%; z-index: 50;
   pointer-events: auto;
 }
-.hand-player { pointer-events: auto; z-index: 60; position: relative; }
-.hand-player .hand-row { pointer-events: auto; }
+
+/* ===== 玩家底栏（手牌 + 提示，不在 3D 变换内） ===== */
+.player-dock {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 120;
+  padding: 6px 10px 4px;
+  background: linear-gradient(to top, rgba(8,20,12,0.92) 0%, rgba(8,20,12,0.72) 55%, transparent 100%);
+  border-top: 1px solid rgba(240,192,64,0.2);
+  overflow: visible;
+}
+.player-dock-table {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 6px 10px; margin-bottom: 4px;
+}
+.player-dock .discards-self,
+.player-dock .melds-self { margin: 0; max-width: 100%; }
+.player-dock .player-self { margin: 0; }
+
+.hand-player {
+  pointer-events: auto;
+  z-index: 130;
+  position: relative;
+  overflow: visible;
+  padding-top: 8px;
+}
+.hand-player .hand-row {
+  pointer-events: auto;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-top: 28px;
+  padding-bottom: 10px;
+  min-height: calc(var(--th-lg) + var(--td-lg) + 36px);
+}
 .hand-player .tile-3d.selectable {
   cursor: pointer;
   pointer-events: auto;
   touch-action: manipulation;
 }
 .hand-player .tile-3d.selectable:active {
-  transform: rotateX(-8deg) translateY(-6px) scale(1.02);
+  transform: rotateX(-4deg) translateY(-6px) translateZ(18px) scale(1.02);
 }
 .seat-left {
   left: 0; top: 50%; transform: translateY(-50%);
@@ -300,16 +338,16 @@ html[data-device="phone"] .app-version { display: none; }
   display: flex; flex-wrap: nowrap; gap: 3px;
   justify-content: center; align-items: flex-end;
   padding: 4px 0;
+  overflow: visible;
 }
 .hand-player .hand-row {
-  gap: 4px; padding-bottom: 6px;
-  overflow-x: auto; overflow-y: hidden;
+  gap: 5px;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x proximity;
   max-width: 100%;
-  padding-left: 4px; padding-right: 4px;
+  padding-left: 6px; padding-right: 6px;
 }
-.hand-player .hand-row .tile-3d { scroll-snap-align: center; }
+.hand-player .hand-row .tile-3d { scroll-snap-align: center; flex-shrink: 0; }
 
 .drawn-gap { width: 14px; flex-shrink: 0; }
 
@@ -436,22 +474,51 @@ html[data-device="phone"] .app-version { display: none; }
   transform: rotateX(72deg) translateZ(4px);
 }
 
-/* 玩家手牌交互 */
+/* 玩家手牌交互 — 略减 3D 倾角，抬高时不与牌桌重叠 */
+.hand-player .tile-3d.facing-bottom {
+  transform: rotateX(-4deg) translateZ(12px);
+}
 .hand-player .tile-3d { cursor: pointer; }
 .hand-player .tile-3d.facing-bottom:hover {
-  transform: rotateX(-8deg) translateY(-10px) translateZ(16px);
+  transform: rotateX(-4deg) translateY(-8px) translateZ(20px);
   filter: brightness(1.05);
 }
 
 .tile-3d.selected {
-  transform: rotateX(-12deg) translateY(-22px) translateZ(24px) !important;
-  filter: brightness(1.08);
-  z-index: 50;
+  transform: rotateX(-6deg) translateY(-20px) translateZ(36px) !important;
+  filter: brightness(1.1);
+  z-index: 200;
 }
-.tile-3d.selected::before { box-shadow: 2px 2px 8px rgba(240,192,64,0.4); }
+.tile-3d.selected::before { box-shadow: 2px 2px 10px rgba(240,192,64,0.5); }
+.tile-3d.selected::after { box-shadow: 0 6px 14px rgba(0,0,0,0.45); }
 .tile-3d.selected .tile-face.front {
   border-color: var(--gold);
-  box-shadow: 0 0 12px rgba(240,192,64,0.5), inset 0 1px 0 rgba(255,255,255,0.9);
+  box-shadow: 0 0 16px rgba(240,192,64,0.65), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+/* 建议牌高亮 — 不要超出被裁切 */
+.tile-3d.hint-suggested {
+  z-index: 180;
+}
+.tile-3d.hint-suggested:not(.selected) {
+  animation: hint-pulse-dock 1.2s ease-in-out infinite;
+}
+@keyframes hint-pulse-dock {
+  0%, 100% { transform: rotateX(-4deg) translateY(-2px) translateZ(16px); }
+  50% { transform: rotateX(-4deg) translateY(-8px) translateZ(24px); }
+}
+.tile-3d.hint-suggested.selected {
+  animation: none;
+}
+.hint-badge {
+  position: absolute; top: -22px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px; font-weight: bold;
+  color: #fff; background: #27ae60;
+  padding: 2px 8px; border-radius: 10px;
+  white-space: nowrap; z-index: 300;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  pointer-events: none;
 }
 
 .tile-3d.last-discard .tile-face.front {
@@ -459,19 +526,21 @@ html[data-device="phone"] .app-version { display: none; }
   box-shadow: 0 0 14px rgba(240,192,64,0.65);
 }
 
-/* ===== 出牌提示栏 ===== */
+/* ===== 出牌提示栏（位于玩家底栏内，始终在牌桌之上） ===== */
 .player-hint {
   flex-shrink: 0;
-  margin: 0 10px;
+  margin: 0 0 8px 0;
   padding: 8px 14px;
-  background: linear-gradient(90deg, rgba(240,192,64,0.22), rgba(240,192,64,0.08));
-  border: 1px solid rgba(240,192,64,0.45);
+  background: linear-gradient(90deg, rgba(240,192,64,0.28), rgba(240,192,64,0.12));
+  border: 1px solid rgba(240,192,64,0.55);
   border-radius: 10px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  position: relative;
+  z-index: 140;
 }
 .player-hint.hidden { display: none !important; }
 .hint-step {
@@ -485,32 +554,13 @@ html[data-device="phone"] .app-version { display: none; }
 .hint-main b { color: var(--gold); font-size: 18px; }
 .hint-sub { font-size: 12px; opacity: 0.85; width: 100%; }
 
-/* 建议打出的牌 — 高亮 */
-.tile-3d.hint-suggested {
-  z-index: 40;
-  animation: hint-pulse 1.2s ease-in-out infinite;
-}
+/* 建议打出的牌 — 高亮（动画见 .hint-pulse-dock） */
 .tile-3d.hint-suggested::after {
   box-shadow: 0 0 12px rgba(100,220,120,0.6);
 }
 .tile-3d.hint-suggested .tile-face.front {
   border-color: #6fcf97;
   box-shadow: 0 0 14px rgba(111,207,151,0.55), inset 0 1px 0 rgba(255,255,255,0.9);
-}
-.hint-badge {
-  position: absolute; top: -12px; left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px; font-weight: bold;
-  color: #fff; background: #27ae60;
-  padding: 2px 8px; border-radius: 10px;
-  white-space: nowrap; z-index: 60;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-  pointer-events: none;
-}
-
-@keyframes hint-pulse {
-  0%, 100% { transform: rotateX(-8deg) translateY(-4px) translateZ(12px); }
-  50% { transform: rotateX(-8deg) translateY(-10px) translateZ(20px); }
 }
 
 .action-btn.discard-confirm.disabled {
@@ -658,17 +708,18 @@ html[data-device="tablet"] .status-panel {
 }
 html[data-device="tablet"] .btn-status-toggle { display: inline-flex; }
 html[data-device="tablet"] .table-wrap { gap: 6px; padding: 4px 6px; }
-html[data-device="tablet"] .table-surface { left: 10%; right: 10%; top: 17%; bottom: 27%; }
+html[data-device="tablet"] .table-surface { left: 11%; right: 11%; top: 10%; bottom: 14%; }
 html[data-device="tablet"] .seat-left, html[data-device="tablet"] .seat-right { width: 13%; }
 html[data-device="tablet"] .seat-top { width: 72%; }
-html[data-device="tablet"] .seat-bottom { width: 98%; }
 html[data-device="tablet"] .size-lg .tile-text { font-size: 20px; }
-html[data-device="tablet"] .player-hint { margin: 0 8px; padding: 6px 10px; }
+html[data-device="tablet"] .player-dock { padding: 5px 8px 3px; }
+html[data-device="tablet"] .player-hint { margin: 0 0 6px 0; padding: 6px 10px; }
+html[data-device="tablet"] .hand-player .hand-row { padding-top: 22px; }
 html[data-device="tablet"] .hint-main { font-size: 15px; }
 html[data-device="tablet"] .action-btn { padding: 10px 16px; font-size: 14px; min-height: 44px; }
 html[data-device="tablet"] .top-left { font-size: 12px; gap: 8px; }
 html[data-device="tablet"] .avatar-grid { grid-template-columns: repeat(6, 1fr); }
-html[data-device="tablet"] .table-stage { transform: rotateX(7deg); }
+html[data-device="tablet"] .table-stage { transform: rotateX(9deg); }
 
 /* 平板竖屏：局面面板改为侧滑抽屉 */
 html[data-device="tablet"][data-orientation="portrait"] .status-panel {
@@ -721,12 +772,20 @@ html[data-device="phone"] .scene-25d {
 }
 html[data-device="phone"] .table-stage { transform: rotateX(5deg); }
 html[data-device="phone"] .table-surface {
-  left: 6%; right: 6%; top: 14%; bottom: 24%;
+  left: 8%; right: 8%; top: 8%; bottom: 12%;
 }
 html[data-device="phone"] .seat-top { width: 78%; top: 1%; }
-html[data-device="phone"] .seat-bottom { width: 100%; bottom: 0; }
 html[data-device="phone"] .seat-left, html[data-device="phone"] .seat-right {
-  width: 11%; height: 50%;
+  width: 11%; height: 55%;
+}
+html[data-device="phone"] .player-dock { padding: 4px 6px 2px; }
+html[data-device="phone"] .hand-player .hand-row {
+  gap: 3px; padding-top: 20px; padding-bottom: 6px;
+  min-height: calc(var(--th-lg) + var(--td-lg) + 28px);
+}
+
+html[data-device="phone"] .player-hint {
+  margin: 0 0 6px 0; padding: 6px 8px; flex-direction: column; align-items: flex-start; gap: 4px;
 }
 html[data-device="phone"] .player-card.vertical .pc-inner { padding: 4px 3px; }
 html[data-device="phone"] .pc-name { font-size: 9px; }
@@ -739,11 +798,6 @@ html[data-device="phone"] .size-lg .tile-text { font-size: 17px; }
 html[data-device="phone"] .size-md .tile-text { font-size: 14px; }
 html[data-device="phone"] .size-sm .tile-text { font-size: 12px; }
 html[data-device="phone"] .drawn-gap { width: 10px; }
-html[data-device="phone"] .hand-player .hand-row { gap: 3px; padding-bottom: 4px; }
-
-html[data-device="phone"] .player-hint {
-  margin: 0 6px; padding: 6px 8px; flex-direction: column; align-items: flex-start; gap: 4px;
-}
 html[data-device="phone"] .hint-main { font-size: 14px; min-width: 0; width: 100%; }
 html[data-device="phone"] .hint-sub { font-size: 11px; }
 
@@ -787,10 +841,12 @@ html[data-device="phone"][data-orientation="landscape"] .table-wrap {
   flex-direction: row;
 }
 html[data-device="phone"][data-orientation="landscape"] .table-surface {
-  left: 8%; right: 8%; top: 16%; bottom: 28%;
+  left: 10%; right: 10%; top: 8%; bottom: 10%;
 }
+html[data-device="phone"][data-orientation="landscape"] .player-dock { padding: 3px 6px 2px; }
+html[data-device="phone"][data-orientation="landscape"] .hand-player .hand-row { padding-top: 18px; }
 html[data-device="phone"][data-orientation="landscape"] .player-hint {
-  flex-direction: row; flex-wrap: wrap;
+  flex-direction: row; flex-wrap: wrap; margin-bottom: 4px;
 }
 html[data-device="phone"][data-orientation="landscape"] .top-left span:nth-child(2),
 html[data-device="phone"][data-orientation="landscape"] .top-left span:nth-child(3) {
@@ -799,20 +855,20 @@ html[data-device="phone"][data-orientation="landscape"] .top-left span:nth-child
 
 /* 手机竖屏：更紧凑牌桌 */
 html[data-device="phone"][data-orientation="portrait"] .table-surface {
-  left: 4%; right: 4%; top: 12%; bottom: 22%;
+  left: 6%; right: 6%; top: 6%; bottom: 10%;
 }
 html[data-device="phone"][data-orientation="portrait"] .seat-left,
 html[data-device="phone"][data-orientation="portrait"] .seat-right {
-  width: 10%; height: 46%;
+  width: 10%; height: 58%;
 }
-html[data-device="phone"][data-orientation="portrait"] .table-stage { transform: rotateX(3deg); }
+html[data-device="phone"][data-orientation="portrait"] .table-stage { transform: rotateX(6deg); }
 
 /* ---------- 触控优化（手机 + 平板） ---------- */
 html[data-touch="1"] .hand-player .tile-3d.selectable:active {
-  transform: rotateX(-8deg) translateY(-8px) translateZ(14px) scale(1.03);
+  transform: rotateX(-4deg) translateY(-6px) translateZ(18px) scale(1.03);
 }
 html[data-touch="1"] .hand-player .tile-3d.facing-bottom:hover {
-  transform: rotateX(-8deg) translateZ(8px);
+  transform: rotateX(-4deg) translateZ(12px);
 }
 html[data-touch="1"] .action-btn { min-height: 44px; }
 html[data-touch="1"] .diff-btn { min-height: 56px; }
