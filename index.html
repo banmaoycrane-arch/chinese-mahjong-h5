@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a472a">
+  <meta name="description" content="中国麻将 — 四人单机，支持手机平板横屏">
+  <link rel="manifest" href="manifest.json">
+  <title>中国麻将</title>
+  <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+  <div id="rotate-hint" class="rotate-hint hidden">
+    <div class="rotate-box">
+      <div class="rotate-icon">📱↻</div>
+      <p>建议横屏游玩</p>
+      <p class="sub">旋转设备以获得最佳视野</p>
+      <button type="button">知道了</button>
+    </div>
+  </div>
+
+  <div id="app">
+    <!-- 开始界面 -->
+    <div id="start-screen" class="screen">
+      <div class="start-panel">
+        <h1>🀄 中国麻将</h1>
+        <p class="subtitle">四人麻将 · 你对战三位电脑 · 国标简化规则</p>
+        <p class="saved-diff">当前难度：<span id="saved-diff-name">普通</span></p>
+        <div id="difficulty-grid" class="diff-grid"></div>
+        <ul class="rule-hints">
+          <li>136 张牌：万筒条 + 风牌 + 箭牌</li>
+          <li>支持吃（上家）、碰、杠、胡</li>
+          <li>胡牌：4 组面子 + 1 对将，或七对</li>
+          <li>电脑 / 平板 / 手机均可，推荐横屏</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="game-screen" class="screen hidden">
+      <header class="top-bar">
+        <div class="top-left">
+          <span id="diff-tag">⚔️ 普通</span>
+          <span>第 <span id="round-num">1</span> 局</span>
+          <span>牌墙 <span id="wall-count">0</span></span>
+        </div>
+        <div id="msg-text" class="msg-text">准备开始</div>
+        <div class="top-right">
+          <button id="btn-menu" type="button" class="icon-btn" title="返回">☰</button>
+        </div>
+      </header>
+
+      <div class="table-wrap">
+        <div class="mahjong-table">
+          <!-- 北家 -->
+          <div class="seat seat-top">
+            <div class="seat-head"><span id="name-top">北家</span> <span id="score-top" class="score">0</span></div>
+            <div id="melds-top" class="melds"></div>
+            <div id="hand-top" class="hand hand-opponent"></div>
+            <div id="discards-top" class="discards"></div>
+          </div>
+
+          <!-- 西家 -->
+          <div class="seat seat-left">
+            <div class="seat-head vertical"><span id="name-left">西家</span> <span id="score-left" class="score">0</span></div>
+            <div id="melds-left" class="melds vertical"></div>
+            <div id="hand-left" class="hand hand-opponent vertical"></div>
+            <div id="discards-left" class="discards vertical"></div>
+          </div>
+
+          <!-- 中央 -->
+          <div class="table-center">
+            <div id="center-discard" class="center-discard"></div>
+          </div>
+
+          <!-- 东家 -->
+          <div class="seat seat-right">
+            <div class="seat-head vertical"><span id="name-right">南家</span> <span id="score-right" class="score">0</span></div>
+            <div id="melds-right" class="melds vertical"></div>
+            <div id="hand-right" class="hand hand-opponent vertical"></div>
+            <div id="discards-right" class="discards vertical"></div>
+          </div>
+
+          <!-- 玩家 -->
+          <div class="seat seat-bottom">
+            <div id="discards-bottom" class="discards"></div>
+            <div id="melds-bottom" class="melds"></div>
+            <div class="seat-head player-head">
+              <span id="name-bottom">东家(你)</span>
+              <span id="score-bottom" class="score">0</span>
+            </div>
+            <div id="hand-bottom" class="hand hand-player"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="action-bar" class="action-bar"></div>
+
+      <div id="result-overlay" class="overlay hidden">
+        <div class="result-card">
+          <h2 id="result-title">胡牌</h2>
+          <p id="result-body"></p>
+          <div class="result-btns">
+            <button id="btn-next" type="button" class="btn primary">下一局</button>
+            <button id="btn-restart" type="button" class="btn">返回选难度</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/tiles.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/difficulty.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

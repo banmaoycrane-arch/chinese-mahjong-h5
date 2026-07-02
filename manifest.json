@@ -1,0 +1,11 @@
+{
+  "name": "中国麻将",
+  "short_name": "麻将",
+  "description": "四人中国麻将单机版",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1a472a",
+  "theme_color": "#1a472a",
+  "lang": "zh-CN"
+}

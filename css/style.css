@@ -1,0 +1,369 @@
+/* 中国麻将 — 独立项目样式，与塔防无关 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --felt: #1a5c34;
+  --felt-dark: #0f3d22;
+  --felt-light: #2d7a4a;
+  --gold: #f0c040;
+  --text: #f5f5f0;
+  --tile-bg: #faf8f2;
+  --tile-border: #c9b896;
+  --shadow: rgba(0,0,0,0.35);
+  --bar-h: 44px;
+  --action-h: 52px;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  background: var(--felt-dark);
+  color: var(--text);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app { width: 100%; height: 100%; }
+
+.screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.screen.hidden { display: none !important; }
+
+/* ===== 横屏提示 ===== */
+.rotate-hint {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rotate-hint.hidden { display: none !important; }
+.rotate-box { text-align: center; padding: 24px; }
+.rotate-icon { font-size: 48px; margin-bottom: 12px; }
+.rotate-box p { font-size: 18px; margin-bottom: 8px; }
+.rotate-box .sub { font-size: 14px; opacity: 0.7; }
+.rotate-box button {
+  margin-top: 16px;
+  padding: 10px 28px;
+  border: none;
+  border-radius: 8px;
+  background: var(--gold);
+  color: #222;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* ===== 开始界面 ===== */
+#start-screen {
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #0f3d22 0%, #1a5c34 40%, #0a2818 100%);
+  overflow-y: auto;
+  padding: 16px;
+}
+.start-panel {
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+}
+.start-panel h1 { font-size: clamp(28px, 6vw, 42px); margin-bottom: 8px; }
+.subtitle { opacity: 0.85; margin-bottom: 12px; font-size: 15px; }
+.saved-diff { margin-bottom: 20px; font-size: 14px; color: var(--gold); }
+
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.diff-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 12px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+.diff-btn:hover, .diff-btn:active {
+  transform: scale(1.03);
+  border-color: var(--gold);
+  background: rgba(240,192,64,0.15);
+}
+.diff-icon { font-size: 28px; }
+.diff-name { font-size: 18px; font-weight: bold; }
+
+.rule-hints {
+  text-align: left;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.9;
+  opacity: 0.8;
+  padding: 16px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+}
+.rule-hints li::before { content: "· "; color: var(--gold); }
+
+/* ===== 顶栏 ===== */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--bar-h);
+  padding: 0 10px;
+  background: rgba(0,0,0,0.35);
+  flex-shrink: 0;
+  font-size: 13px;
+  gap: 8px;
+}
+.top-left, .top-right { display: flex; gap: 10px; align-items: center; white-space: nowrap; }
+.msg-text {
+  flex: 1;
+  text-align: center;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.icon-btn {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: var(--text);
+  width: 36px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* ===== 牌桌 ===== */
+.table-wrap {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 6px;
+  display: flex;
+}
+.mahjong-table {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  grid-template-rows: 1fr 2fr 1fr;
+  grid-template-areas:
+    ".      top    ."
+    "left   center right"
+    ".      bottom .";
+  gap: 2px;
+  background: var(--felt);
+  border-radius: 16px;
+  border: 3px solid var(--gold);
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.3), 0 4px 20px var(--shadow);
+  position: relative;
+  min-height: 0;
+}
+.seat-top    { grid-area: top; }
+.seat-left   { grid-area: left; }
+.seat-center { grid-area: center; }
+.seat-right  { grid-area: right; }
+.seat-bottom { grid-area: bottom; }
+.table-center { grid-area: center; display: flex; align-items: center; justify-content: center; }
+
+.seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 2px;
+}
+.seat-left, .seat-right { flex-direction: row; }
+.seat-head {
+  font-size: 11px;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+.seat-head.active-turn { color: var(--gold); font-weight: bold; }
+.score { color: var(--gold); margin-left: 4px; }
+
+/* ===== 麻将牌 ===== */
+.tile {
+  width: 36px;
+  height: 48px;
+  background: var(--tile-bg);
+  border: 1px solid var(--tile-border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px var(--shadow);
+  flex-shrink: 0;
+  user-select: none;
+  cursor: default;
+}
+.tile.small { width: 28px; height: 38px; font-size: 11px; }
+.tile.tiny  { width: 22px; height: 30px; font-size: 9px; }
+.tile.face-down {
+  background: linear-gradient(135deg, #3d8b5a, #1a5c34);
+  border-color: #2d7a4a;
+  cursor: default;
+}
+.tile.selected {
+  transform: translateY(-10px);
+  border-color: var(--gold);
+  box-shadow: 0 6px 12px rgba(240,192,64,0.5);
+}
+.tile.last-discard { outline: 2px solid var(--gold); }
+.tile-wan .tile-text  { color: #c0392b; }
+.tile-tong .tile-text { color: #2980b9; }
+.tile-tiao .tile-text { color: #27ae60; }
+.tile-feng .tile-text { color: #8e44ad; }
+.tile-jian .tile-text { color: #d35400; }
+
+.hand {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  justify-content: center;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+.hand.vertical {
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 100%;
+}
+.hand-player .tile { cursor: pointer; }
+.hand-player .tile:hover { transform: translateY(-6px); }
+.drawn-gap { width: 8px; flex-shrink: 0; }
+
+.melds, .discards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+  max-width: 100%;
+}
+.melds.vertical, .discards.vertical {
+  flex-direction: column;
+  align-items: center;
+}
+.meld-group {
+  display: flex;
+  gap: 1px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 4px;
+  padding: 1px;
+}
+.meld-group.vertical { flex-direction: column; }
+
+.center-discard { min-height: 40px; }
+
+/* ===== 操作栏 ===== */
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  min-height: var(--action-h);
+  padding: 6px 10px;
+  background: rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+.action-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.action-btn.primary {
+  background: var(--gold);
+  color: #222;
+  border-color: var(--gold);
+  font-weight: bold;
+}
+.action-btn.pass { opacity: 0.85; }
+
+/* ===== 结算 ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.overlay.hidden { display: none !important; }
+.result-card {
+  background: linear-gradient(160deg, #1e5631, #0f3d22);
+  border: 2px solid var(--gold);
+  border-radius: 16px;
+  padding: 28px 32px;
+  text-align: center;
+  max-width: 90%;
+}
+.result-card h2 { font-size: 24px; margin-bottom: 12px; color: var(--gold); }
+.result-card p { margin-bottom: 20px; font-size: 16px; }
+.result-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn {
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.1);
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+}
+.btn.primary { background: var(--gold); color: #222; border-color: var(--gold); font-weight: bold; }
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+  :root { --bar-h: 38px; --action-h: 46px; }
+  .tile { width: 30px; height: 40px; font-size: 12px; }
+  .tile.small { width: 24px; height: 32px; font-size: 10px; }
+  .tile.tiny  { width: 18px; height: 26px; font-size: 8px; }
+  .top-bar { font-size: 11px; }
+  .seat-head { font-size: 10px; }
+}
+
+@media (max-height: 420px) {
+  .tile { width: 26px; height: 34px; font-size: 10px; }
+  .tile.small { width: 20px; height: 28px; font-size: 9px; }
+  :root { --action-h: 40px; }
+}
+
+@media (min-width: 1200px) {
+  .tile { width: 42px; height: 56px; font-size: 16px; }
+  .mahjong-table { max-width: 1100px; margin: 0 auto; width: 100%; }
+}
+
+/* 竖屏手机仍可玩，但牌略小 */
+@media (orientation: portrait) and (max-width: 600px) {
+  .mahjong-table {
+    grid-template-rows: 0.8fr 2fr 1.2fr;
+  }
+  .tile { width: 26px; height: 34px; font-size: 10px; }
+}
